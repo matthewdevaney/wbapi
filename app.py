@@ -1,9 +1,3 @@
-# 1. Explain REST API and Simple CRUD
-# 2. GET multiple arguments, multiple results, marshalling
-# 3. Authentication
-# 4. Creating a database w/ model, webapp
-# 5. Deployment
-
 from flask import Flask
 from flask_restful import Resource, Api, reqparse, fields, marshal
 import json
