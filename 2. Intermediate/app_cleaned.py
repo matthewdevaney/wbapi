@@ -86,7 +86,12 @@ class Countries(Resource):
         
         return json_response
 
-
+    # def parseArguments(self, *args):
+    #     parser = reqparse.RequestParser()
+    #     if args:
+    #         for a in args:
+    #             parser.add_argument(a)
+    #         return parser.parse_args()
 
     def get(self):
     # get the data for a country with a matching country code
