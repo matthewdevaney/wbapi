@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, make_response
 from flask_restful import Resource, Api, reqparse, fields, marshal
 import json
 
@@ -7,7 +7,7 @@ api = Api(app)
 
 countriesList = [
     {
-        'Name': 'Argentina',
+        'name': 'Argentina',
         'code': 'ARG',
         'region': 'Latin America Caribbean',
         'population': 44494502,
@@ -94,29 +94,30 @@ class Countries(Resource):
             resource_fields['land area'] = fields.Integer
             resource_fields['density'] = fields.Integer
         
-            data = {
+            outputJSON = {
                     'Status': 'Success',
                     'Error Code': 0,
-                    'Message': 'Countries matching the criteria were found',
+                    'Message': 'Countries with matching criteria were found',
                     'Data': marshal(data, resource_fields)
             }     
 
-            return data, 200
+            return make_response(outputJSON, 200)
 
         else:
 
-            data = {
+            outputJSON = {
                     'Status': 'Failed',
                     'Error Code': 1,
-                    'Message': 'No countries were found matching criteria',
+                    'Message': 'No countries with matching criteria were found',
                     'Data': []
             }     
 
-            return data, 404
+            return make_response(outputJSON, 404)
 
     def post(self):
     # create a new country
-    
+
+        # parse any arguments within the request    
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str, required=True)
         parser.add_argument('code', type=str, required=True)
@@ -126,18 +127,48 @@ class Countries(Resource):
         parser.add_argument('density', type=int)
         args = parser.parse_args()
 
+        # check if the country already exists
         for country in countriesList:
             if country['code'] == args['code']:
-                return f"Error: Country with code {country['code']} already exists", 400
 
+                outputJSON = {
+                        'Status': 'Failed',
+                        'Error Code': 2,
+                        'Message': f"Country with code {country['code']} already exists",
+                        'Data': []
+                }
+
+                return make_response(outputJSON, 400)
+
+        # load a dictionary and insert into the database
         new_country = {
             'name': args['name'],
             'code': args['code'],
-            'region': args['region']
+            'region': args['region'],
+            'population': args['population'],
+            'land area': args['landarea'],
+            'density': args['density']
         }
 
         countriesList.append(new_country)
-        return f"Success: {new_country['name']} was added to the list" , 200
+
+        # send the response in a JSON format
+        resource_fields = {}
+        resource_fields['code'] = fields.String
+        resource_fields['name'] = fields.String
+        resource_fields['region'] = fields.String
+        resource_fields['population'] = fields.Integer
+        resource_fields['land area'] = fields.Integer
+        resource_fields['density'] = fields.Integer
+
+        outputJSON = {
+                'Status': 'Success',
+                'Error Code': 0,
+                'Message': f"Country with code {country['code']} was added",
+                'Data': marshal(new_country, resource_fields)
+                }
+
+        return make_response(outputJSON, 200)
 
     def put(self):
     # update the data of an existing country with the matching country code
