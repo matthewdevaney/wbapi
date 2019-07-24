@@ -166,7 +166,7 @@ class Countries(Resource):
                 'Error Code': 0,
                 'Message': f"Country with code {country['code']} was added",
                 'Data': marshal(new_country, resource_fields)
-                }
+        }
 
         return make_response(outputJSON, 200)
 
@@ -175,9 +175,11 @@ class Countries(Resource):
 
         parser = reqparse.RequestParser()
         parser.add_argument('name', type=str)
-        parser.add_argument('code')
+        parser.add_argument('code', type=str)
         parser.add_argument('region', type=str)
         parser.add_argument('population', type=int)
+        parser.add_argument('landarea', type=int)
+        parser.add_argument('density', type=int)
         args = parser.parse_args()
 
         for country in countriesList:
@@ -185,9 +187,34 @@ class Countries(Resource):
                 country['name'] = args['name']
                 country['region'] = args['region']
                 country['population'] = args['population']
-                return f"Success: Country with code {country['code']} was updated", 200
+                country['land area'] = args['landarea']
+                country['density'] = args['density']
+
+                resource_fields = {}
+                resource_fields['code'] = fields.String
+                resource_fields['name'] = fields.String
+                resource_fields['region'] = fields.String
+                resource_fields['population'] = fields.Integer
+                resource_fields['land area'] = fields.Integer
+                resource_fields['density'] = fields.Integer
+
+                outputJSON = {
+                            'Status': 'Success',
+                            'Error Code': 0,
+                            'Message': f"Country with code {country['code']} was updated",
+                            'Data': marshal(country, resource_fields)
+                }
+
+                return make_response(outputJSON, 200)
         
-        return f"Error: Country with code {args['code']} could not be found", 400
+        outputJSON = {
+                    'Status': 'Failed',
+                    'Error Code': 3,
+                    'Message': f"Country with code {args['code']} could not be found",
+                    'Data': []
+        }     
+
+        return make_response(outputJSON, 400)
 
 
     def delete(self):
@@ -199,9 +226,24 @@ class Countries(Resource):
         for country in countriesList:
             if country['code'] == args['code']:
                 countriesList.remove(country)
-                return f"Success: Country with code {country['code']} was removed", 200
+
+                outputJSON = {
+                    'Status': 'Success',
+                    'Error Code': 0,
+                    'Message': f"Success: Country with code {country['code']} was removed",
+                    'Data': []
+                }
+
+                return make_response(outputJSON, 200)
         
-        return f"Error: Country with code {args['code']} could not be found", 400
+        outputJSON = {
+                    'Status': 'Success',
+                    'Error Code': 3,
+                    'Message': f"Country with code {args['code']} could not be found",
+                    'Data': []
+        }
+
+        return (outputJSON, 400)
 
 
 api.add_resource(Countries, '/api/countries', endpoint='countries')
