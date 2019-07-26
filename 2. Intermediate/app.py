@@ -54,8 +54,8 @@ class Countries(Resource):
     def parseArguments(self, *args):
         parser = reqparse.RequestParser()
 
-        integerArguments = ['population', 'landarea', 'density']
-        stringArguments = ['code','name','region','population','sort_by','sort_order','limit']
+        integerArguments = ['population', 'landarea', 'density','limit']
+        stringArguments = ['code','name','region','population','sort_by','sort_order']
 
         for a in args:
             if a in integerArguments:
