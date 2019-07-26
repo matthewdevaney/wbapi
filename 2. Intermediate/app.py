@@ -49,25 +49,80 @@ countriesList = [
 ]
 
 class Countries(Resource):
-    
+   
+    # parse any arguments passed with the request
+    def parseArguments(self, *args):
+        parser = reqparse.RequestParser()
+
+        integerArguments = ['population', 'landarea', 'density']
+        stringArguments = ['code','name','region','population','sort_by','sort_order','limit']
+
+        for a in args:
+            if a in integerArguments:
+                parser.add_argument(a, type=int)
+            else:
+                parser.add_argument(a, type=str)
+        return parser.parse_args()
+
+    # make a dictionary object representing a country
+    def constructCountry(self, data):
+        return {
+            'name': data['name'],
+            'code': data['code'],
+            'region': data['region'],
+            'population': data['population'],
+            'land area': data['landarea'],
+            'density': data['density']
+        }
+
+    # construct the JSON returned with the response
+    def makeJSON(self, inputData, errorCode):
+        
+        if errorCode:
+            status = 'Failed'
+        else:
+            status = 'Success'
+
+        errorCodes = {
+            0: '',
+            1: 'No countries with matching criteria were found',
+            2: 'Country with code already exists',
+            3: 'Country with code could not be found'
+        }
+
+        resource_fields = {}
+        resource_fields['code'] = fields.String
+        resource_fields['name'] = fields.String
+        resource_fields['region'] = fields.String
+        resource_fields['population'] = fields.Integer
+        resource_fields['land area'] = fields.Integer
+        resource_fields['density'] = fields.Integer
+
+        if inputData:
+            jsonData = marshal(inputData, resource_fields)
+        else:
+            jsonData = []
+
+        json_response = {
+                'Status': status,
+                'Error Code': errorCode,
+                'Message': errorCodes[errorCode],
+                'Data': jsonData
+            }
+        
+        return json_response
+        
     def get(self):
     # get the data for a country with a matching country code
 
         # parse any arguments within the request
-        parser = reqparse.RequestParser()
-        parser.add_argument('code', action='append')
-        parser.add_argument('region')
-        parser.add_argument('sort_order')
-        parser.add_argument('sort_by')
-        parser.add_argument('limit')
-        args = parser.parse_args()
+        args = self.parseArguments('code','region','sort_order','sort_by','limit')
 
-        
         # filter and sort the data based on arguments
         data = countriesList
 
         if args['code']:
-            data = [x for x in data if x['code'] in args['code']]
+            data = [x for x in data if x['code'] == args['code']]
         
         if args['region']:
             data = [x for x in data if x['region'] == args['region']]
@@ -85,165 +140,74 @@ class Countries(Resource):
         
         # send the response in a JSON format
         if data:
-
-            resource_fields = {}
-            resource_fields['code'] = fields.String
-            resource_fields['name'] = fields.String
-            resource_fields['region'] = fields.String
-            resource_fields['population'] = fields.Integer
-            resource_fields['land area'] = fields.Integer
-            resource_fields['density'] = fields.Integer
-        
-            outputJSON = {
-                    'Status': 'Success',
-                    'Error Code': 0,
-                    'Message': 'Countries with matching criteria were found',
-                    'Data': marshal(data, resource_fields)
-            }     
-
-            return make_response(outputJSON, 200)
-
+            return make_response(
+                   self.makeJSON(data, 0),
+                   200)
         else:
-
-            outputJSON = {
-                    'Status': 'Failed',
-                    'Error Code': 1,
-                    'Message': 'No countries with matching criteria were found',
-                    'Data': []
-            }     
-
-            return make_response(outputJSON, 404)
+            return make_response(
+                   self.makeJSON(data, 1),
+                   404)
 
     def post(self):
     # create a new country
 
         # parse any arguments within the request    
-        parser = reqparse.RequestParser()
-        parser.add_argument('name', type=str, required=True)
-        parser.add_argument('code', type=str, required=True)
-        parser.add_argument('region', type=str)
-        parser.add_argument('population', type=int)
-        parser.add_argument('landarea', type=int)
-        parser.add_argument('density', type=int)
-        args = parser.parse_args()
+        args = self.parseArguments('name','code','region','population','landarea','density')
 
         # check if the country already exists
         for country in countriesList:
             if country['code'] == args['code']:
 
-                outputJSON = {
-                        'Status': 'Failed',
-                        'Error Code': 2,
-                        'Message': f"Country with code {country['code']} already exists",
-                        'Data': []
-                }
+                new_country = []
 
-                return make_response(outputJSON, 400)
+                return make_response(
+                   self.makeJSON(new_country, 2),
+                   400)
 
         # load a dictionary and insert into the database
-        new_country = {
-            'name': args['name'],
-            'code': args['code'],
-            'region': args['region'],
-            'population': args['population'],
-            'land area': args['landarea'],
-            'density': args['density']
-        }
+        new_country = constructCountry(args)
 
         countriesList.append(new_country)
 
-        # send the response in a JSON format
-        resource_fields = {}
-        resource_fields['code'] = fields.String
-        resource_fields['name'] = fields.String
-        resource_fields['region'] = fields.String
-        resource_fields['population'] = fields.Integer
-        resource_fields['land area'] = fields.Integer
-        resource_fields['density'] = fields.Integer
-
-        outputJSON = {
-                'Status': 'Success',
-                'Error Code': 0,
-                'Message': f"Country with code {country['code']} was added",
-                'Data': marshal(new_country, resource_fields)
-        }
-
-        return make_response(outputJSON, 200)
+        return make_response(
+                   self.makeJSON(new_country, 2),
+                   200)
 
     def put(self):
     # update the data of an existing country with the matching country code
 
-        parser = reqparse.RequestParser()
-        parser.add_argument('name', type=str)
-        parser.add_argument('code', type=str)
-        parser.add_argument('region', type=str)
-        parser.add_argument('population', type=int)
-        parser.add_argument('landarea', type=int)
-        parser.add_argument('density', type=int)
-        args = parser.parse_args()
+        args = self.parseArguments('name','code','region','population','landarea','density')
 
         for country in countriesList:
             if country['code'] == args['code']:
-                country['name'] = args['name']
-                country['region'] = args['region']
-                country['population'] = args['population']
-                country['land area'] = args['landarea']
-                country['density'] = args['density']
+                updated_country = constructCountry(args)
 
-                resource_fields = {}
-                resource_fields['code'] = fields.String
-                resource_fields['name'] = fields.String
-                resource_fields['region'] = fields.String
-                resource_fields['population'] = fields.Integer
-                resource_fields['land area'] = fields.Integer
-                resource_fields['density'] = fields.Integer
-
-                outputJSON = {
-                            'Status': 'Success',
-                            'Error Code': 0,
-                            'Message': f"Country with code {country['code']} was updated",
-                            'Data': marshal(country, resource_fields)
-                }
-
-                return make_response(outputJSON, 200)
+                return make_response(
+                   self.makeJSON(updated_country, 0),
+                   200)
         
-        outputJSON = {
-                    'Status': 'Failed',
-                    'Error Code': 3,
-                    'Message': f"Country with code {args['code']} could not be found",
-                    'Data': []
-        }     
-
-        return make_response(outputJSON, 400)
+        return make_response(
+                   self.makeJSON(updated_country, 3),
+                   400)
 
 
     def delete(self):
 
-        parser = reqparse.RequestParser()
-        parser.add_argument('code')
-        args = parser.parse_args()
+        args = self.parseArguments('code')
+
+        deletedCountry = []
 
         for country in countriesList:
             if country['code'] == args['code']:
                 countriesList.remove(country)
 
-                outputJSON = {
-                    'Status': 'Success',
-                    'Error Code': 0,
-                    'Message': f"Success: Country with code {country['code']} was removed",
-                    'Data': []
-                }
-
-                return make_response(outputJSON, 200)
+                return make_response(
+                   self.makeJSON(deletedCountry, 0),
+                   200)
         
-        outputJSON = {
-                    'Status': 'Success',
-                    'Error Code': 3,
-                    'Message': f"Country with code {args['code']} could not be found",
-                    'Data': []
-        }
-
-        return (outputJSON, 400)
+        return make_response(
+                   self.makeJSON(deletedCountry, 3),
+                   400)
 
 
 api.add_resource(Countries, '/api/countries', endpoint='countries')
