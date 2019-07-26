@@ -111,7 +111,7 @@ class Countries(Resource):
             }
         
         return json_response
-        
+
     def get(self):
     # get the data for a country with a matching country code
 
