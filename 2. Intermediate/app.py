@@ -50,18 +50,29 @@ countriesList = [
 
 class Countries(Resource):
    
+    apiKey = '68f4adf6ba9d'
+
     # parse any arguments passed with the request
     def parseArguments(self, *args):
         parser = reqparse.RequestParser()
 
-        integerArguments = ['population', 'landarea', 'density','limit']
-        stringArguments = ['code','name','region','population','sort_by','sort_order']
+        argumentTypes = {
+            'apikey': str,
+            'code': str,
+            'name': str,
+            'region': str,
+            'population': str,
+            'sort_by': str,
+            'sort_order': str,
+            'population': int,
+            'landarea': int,
+            'density': int,
+            'limit': int
+        }
 
         for a in args:
-            if a in integerArguments:
-                parser.add_argument(a, type=int)
-            else:
-                parser.add_argument(a, type=str)
+            if a in argumentTypes.keys():
+                parser.add_argument(a, type=argumentTypes[a])
         return parser.parse_args()
 
     # make a dictionary object representing a country
@@ -87,7 +98,8 @@ class Countries(Resource):
             0: '',
             1: 'No countries with matching criteria were found',
             2: 'Country with code already exists',
-            3: 'Country with code could not be found'
+            3: 'Country with code could not be found',
+            4: 'API key is not valid'
         }
 
         resource_fields = {}
@@ -116,7 +128,13 @@ class Countries(Resource):
     # get the data for a country with a matching country code
 
         # parse any arguments within the request
-        args = self.parseArguments('code','region','sort_order','sort_by','limit')
+        args = self.parseArguments('apikey','code','region','sort_order','sort_by','limit')
+
+        # check for authorization
+        if args['apikey'] != self.apiKey:
+            return make_response(
+                   self.makeJSON([], 4),
+                   401)
 
         # filter and sort the data based on arguments
         data = countriesList
@@ -152,7 +170,13 @@ class Countries(Resource):
     # create a new country
 
         # parse any arguments within the request    
-        args = self.parseArguments('name','code','region','population','landarea','density')
+        args = self.parseArguments('apikey','name','code','region','population','landarea','density')
+
+        # check for authorization
+        if args['apikey'] != self.apiKey:
+            return make_response(
+                   self.makeJSON([], 4),
+                   401)
 
         # check if the country already exists
         for country in countriesList:
@@ -176,7 +200,13 @@ class Countries(Resource):
     def put(self):
     # update the data of an existing country with the matching country code
 
-        args = self.parseArguments('name','code','region','population','landarea','density')
+        args = self.parseArguments('apikey','name','code','region','population','landarea','density')
+
+        # check for authorization
+        if args['apikey'] != self.apiKey:
+            return make_response(
+                   self.makeJSON([], 4),
+                   401)
 
         for country in countriesList:
             if country['code'] == args['code']:
@@ -193,7 +223,13 @@ class Countries(Resource):
 
     def delete(self):
 
-        args = self.parseArguments('code')
+        args = self.parseArguments('apikey','code')
+
+        # check for authorization
+        if args['apikey'] != self.apiKey:
+            return make_response(
+                   self.makeJSON([], 4),
+                   401)
 
         deletedCountry = []
 
