@@ -5,6 +5,7 @@ import json
 app = Flask(__name__)
 api = Api(app)
 
+# data to be consumed by API in a simple list format as opposed to a database
 countriesList = [
     {
         'name': 'Argentina',
@@ -50,6 +51,7 @@ countriesList = [
 
 class Countries(Resource):
    
+    # must be supplied as an argument to authorize API usage
     apiKey = '68f4adf6ba9d'
 
     # parse any arguments passed with the request
@@ -208,6 +210,7 @@ class Countries(Resource):
                    self.makeJSON([], 4),
                    401)
 
+        # ensure the country to be updated exists
         for country in countriesList:
             if country['code'] == args['code']:
                 updated_country = constructCountry(args)
@@ -233,6 +236,7 @@ class Countries(Resource):
 
         deletedCountry = []
 
+        # ensure the country to be deleted exists
         for country in countriesList:
             if country['code'] == args['code']:
                 countriesList.remove(country)
@@ -246,6 +250,7 @@ class Countries(Resource):
                    400)
 
 
+# endpoint definitions
 api.add_resource(Countries, '/api/countries', endpoint='countries')
 
 
